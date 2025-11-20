@@ -1,0 +1,16 @@
+# Ignore all node_modules folders anywhere in the repo
+**/node_modules/
+
+# Logs
+**/*.log
+
+# Build outputs
+frontend/.next/
+backend/dist/
+
+# Env files
+**/.env
+**/.env.local
+
+# IDE
+.vscode/
