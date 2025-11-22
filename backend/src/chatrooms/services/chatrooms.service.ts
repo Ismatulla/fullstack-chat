@@ -2,11 +2,13 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Chatroom } from '../entities/chatroom.entity';
 import { CreateChatRoomDto } from '../dto/create-chatroom.dto';
+import { UpdateChatRoomDto } from '../dto/update-chatroom.dto';
 import { User } from '../../users/entities/user.entity';
 
 @Injectable()
@@ -22,7 +24,6 @@ export class ChatroomsService {
     const existingRoom = await this.chatroomRepo
       .createQueryBuilder('chatroom')
       .where('LOWER(chatroom.name) = LOWER(:name)', { name: normalizedName })
-      .andWhere('chatroom.ownerId = :ownerId', { ownerId: owner.id })
       .getOne();
 
     if (existingRoom) {
@@ -39,10 +40,50 @@ export class ChatroomsService {
 
     return await this.chatroomRepo.save(chatroom);
   }
+  async update(roomId: number, dto: UpdateChatRoomDto, owner: User) {
+    const room = await this.chatroomRepo.findOne({
+      where: { id: roomId },
+      relations: ['owner'],
+    });
 
-  async findAll(userId: number) {
+    if (!room) {
+      throw new NotFoundException('Chatroom not found or not yours');
+    }
+
+    if (room.owner.id !== owner.id) {
+      throw new ForbiddenException('You can only edit your own chatrooms');
+    }
+
+    // Update name if provided
+    if (dto.name) {
+      const normalizedName = dto.name.trim();
+
+      const existingRoom = await this.chatroomRepo
+        .createQueryBuilder('chatroom')
+        .where('LOWER(chatroom.name) = LOWER(:name)', { name: normalizedName })
+        .andWhere('chatroom.ownerId = :ownerId', { ownerId: owner.id })
+        .andWhere('chatroom.id != :roomId', { roomId })
+        .getOne();
+
+      if (existingRoom) {
+        throw new ConflictException(
+          `You already have a chatroom named "${normalizedName}"`,
+        );
+      }
+
+      room.name = normalizedName;
+    }
+
+    // Update image independently
+    if (dto.image !== undefined) {
+      room.image = dto.image;
+    }
+
+    return await this.chatroomRepo.save(room);
+  }
+
+  async findAll() {
     return await this.chatroomRepo.find({
-      where: { owner: { id: userId } },
       order: { createdAt: 'DESC' },
       relations: ['owner'],
     });

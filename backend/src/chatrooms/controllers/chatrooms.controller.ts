@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -22,6 +23,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { CurrentChatroom } from '../decorators/current-chatroom.decorator';
 import { User } from '../../users/entities/user.entity';
 import { Chatroom } from '../entities/chatroom.entity';
+import { UpdateChatRoomDto } from '../dto/update-chatroom.dto';
 
 @Controller('chatrooms')
 @UseGuards(JwtAuthGuard)
@@ -39,13 +41,22 @@ export class ChatroomsController {
     return this.chatroomsService.create(createChatRoomDto, user);
   }
 
+  @Put(':id')
+  @UseGuards(ChatroomOwnerGuard)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateChatRoomDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.chatroomsService.update(id, dto, user);
+  }
+
   @Get()
-  findAll(@CurrentUser() user: User) {
-    return this.chatroomsService.findAll(user.id);
+  findAll() {
+    return this.chatroomsService.findAll();
   }
 
   @Get(':id')
-  @UseGuards(ChatroomAccessGuard)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.chatroomsService.findOne(id);
   }

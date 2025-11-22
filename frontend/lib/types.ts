@@ -26,11 +26,11 @@ export interface Message {
 export interface ChatRoom {
   id: string
   name: string
-  description?: string
-  members: string[]
+  members?: string[]
   lastMessage?: Message
-  unreadCount: number
-  avatar?: string
+  unreadCount?: number
+  image?: string
+  owner?: { id: string; email: string; name: string }
 }
 
 export interface TypingIndicator {
@@ -38,3 +38,19 @@ export interface TypingIndicator {
   roomId: string
   isTyping: boolean
 }
+
+export type Messages = {
+  id?: string
+  name: string
+  createdAt?: Date
+  updatedAt?: Date
+  image?: string
+}
+
+export type Owner = {
+  id?: string
+  name: string
+  email?: string
+}
+
+export type ChatRooms = Owner & Messages

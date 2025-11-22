@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
 import { login } from '@/services/authService'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -26,16 +27,18 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
+    setIsLoading(true)
     try {
       await login({ email, password })
       router.push('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      const message = getErrorMessage(err)
+      setError(message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -77,7 +80,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••"
+                placeholder="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 disabled={isLoading}
@@ -100,16 +103,6 @@ export default function LoginPage() {
             >
               Sign up
             </Link>
-          </div>
-
-          <div className="mt-6 pt-4 border-t space-y-2">
-            <p className="text-xs text-muted-foreground text-center font-medium">
-              Demo Credentials
-            </p>
-            <div className="text-xs space-y-1 bg-muted p-2 rounded">
-              <p>Email: demo@example.com</p>
-              <p>Password: demo123</p>
-            </div>
           </div>
         </CardContent>
       </Card>

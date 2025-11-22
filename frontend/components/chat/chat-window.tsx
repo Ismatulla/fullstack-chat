@@ -12,9 +12,14 @@ import Image from 'next/image'
 interface ChatWindowProps {
   room: ChatRoom
   currentUser?: User
+  selectedRoom: ChatRoom
 }
 
-export default function ChatWindow({ room, currentUser }: ChatWindowProps) {
+export default function ChatWindow({
+  room,
+  currentUser,
+  selectedRoom,
+}: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(
     mockMessages.filter(m => m.roomId === room.id),
   )
@@ -42,7 +47,6 @@ export default function ChatWindow({ room, currentUser }: ChatWindowProps) {
     }
     setMessages([...messages, newMessage])
   }
-
   const handleReact = (messageId: string = '', emoji: string) => {
     setMessages(
       messages.map(msg => {
@@ -88,17 +92,21 @@ export default function ChatWindow({ room, currentUser }: ChatWindowProps) {
         <div className="flex items-center gap-3">
           <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-linear-to-br from-purple-400 to-pink-400 shadow-sm">
             <Image
-              src={room.avatar || '/placeholder.svg?height=40&width=40'}
-              alt={room.name}
-              fill
+              src={selectedRoom.image || '/general-room.jpg'}
+              alt={selectedRoom.name}
               className="object-cover"
+              fill
             />
           </div>
           <div>
-            <h2 className="font-semibold text-foreground">{room.name}</h2>
-            <p className="text-xs text-muted-foreground">
-              {room.members.length} members
-            </p>
+            <h2 className="font-semibold text-foreground">
+              {selectedRoom.name}
+            </h2>
+            {selectedRoom?.members && (
+              <p className="text-xs text-muted-foreground">
+                {selectedRoom.members.length} members
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

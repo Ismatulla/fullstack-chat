@@ -1,5 +1,5 @@
 // mock-data.ts
-import type { User, ChatRoom, Message } from './types'
+import type { User, Message } from './types'
 
 export const mockUsers: User[] = [
   {
@@ -36,41 +36,6 @@ export const mockUsers: User[] = [
     avatar: '/avatar-taylor.jpg',
     status: 'online',
     email: 'taylor@example.com',
-  },
-]
-
-export const mockRooms: ChatRoom[] = [
-  {
-    id: 'general',
-    name: 'General',
-    description: 'General discussion',
-    members: ['1', '2', '3', '4', '5'],
-    unreadCount: 0,
-    avatar: '/general-room.jpg',
-  },
-  {
-    id: 'design',
-    name: 'Design Team',
-    description: 'Design discussions and feedback',
-    members: ['1', '2', '5'],
-    unreadCount: 3,
-    avatar: '/design-room.jpg',
-  },
-  {
-    id: 'engineering',
-    name: 'Engineering',
-    description: 'Technical discussions',
-    members: ['1', '3', '4'],
-    unreadCount: 0,
-    avatar: '/engineering-room.jpg',
-  },
-  {
-    id: 'marketing',
-    name: 'Marketing',
-    description: 'Marketing campaigns',
-    members: ['2', '5'],
-    unreadCount: 1,
-    avatar: '/marketing-room.jpg',
   },
 ]
 

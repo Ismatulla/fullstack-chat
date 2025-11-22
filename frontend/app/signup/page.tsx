@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -33,9 +34,9 @@ export default function SignupPage() {
       const res = await signUp({ email, password, name })
       console.log(res)
       router.push('/')
-    } catch (err) {
-      console.log(err)
-      setError(err instanceof Error ? err.message : 'Signup failed')
+    } catch (err: unknown) {
+      const message = getErrorMessage(err)
+      setError(message)
     } finally {
       setLoading(false)
     }

@@ -1,66 +1,64 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Sidebar } from '@/components/chat/sidebar'
 import ChatWindow from '@/components/chat/chat-window'
 import { ChatRoom } from '@/lib/types'
-import { useParams } from 'next/navigation'
-import { Auth } from '@/lib/auth-types'
-import { allUsers } from '@/services/userService'
+import { User } from '@/lib/auth-types'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { getAllRoms } from '@/services/chatService'
+import useSWR from 'swr'
 
 interface ChatLayoutProps {
-  initialRooms: ChatRoom[]
+  defaultUser?: User | null
+  defaultRooms?: ChatRoom[]
 }
 
-export function ChatLayout({ initialRooms }: ChatLayoutProps) {
-  const [selectedRoom, setSelectedRoom] = useState(initialRooms[0])
-  const [isLoading, setIsLoading] = useState(false)
-  const [users, setUsers] = useState<Auth[] | []>([])
+/**
+ * Next.js 15+ Best Practice: Client Component Hydration
+ * 
+ * This component accepts initial data fetched on the server.
+ * It passes this data to hooks (like useSWR) as fallback/initial data.
+ * This ensures the UI is interactive immediately without a second fetch,
+ * while still allowing client-side revalidation/updates.
+ */
+export function ChatLayout({ defaultUser = null, defaultRooms = [] }: ChatLayoutProps) {
+  const { user, loading } = useRequireAuth(defaultUser)
+  
+  const { data: rooms, error, isLoading } = useSWR('chatrooms', getAllRoms, {
+    fallbackData: defaultRooms,
+    revalidateOnFocus: false
+  })
 
-  const params = useParams()
-  // const router = useRouter()
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null)
+  const roomToShow = selectedRoom || rooms?.[0]
 
-  const id = params.id
-  const user = users?.find(user => user.id === id)
-
-  useEffect(() => {
-    async function fetchAllUsers() {
-      setIsLoading(true)
-      try {
-        const { data } = await allUsers()
-        setUsers(data)
-      } catch (error) {
-        console.log(error instanceof Error ? error.message : 'Failed to fetch')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchAllUsers()
-  }, [])
-
-  if (isLoading) {
+  // Only show loading spinner if we really don't have data and are loading
+  if ((isLoading && !rooms) || loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     )
   }
+  if (!user) return null
+  if (error) return <p>Error loading rooms</p>
 
-  if (!users) {
-    return null
-  }
   return (
     <>
       <Sidebar
-        selectedRoom={selectedRoom}
-        onSelectRoom={setSelectedRoom}
         currentUser={user}
+        selectedRoom={roomToShow}
+        onSelectRoom={setSelectedRoom}
       />
 
-      {selectedRoom && <ChatWindow room={selectedRoom} currentUser={user} />}
+      {rooms?.[0] && (
+        <ChatWindow
+          room={rooms?.[0]}
+          currentUser={user}
+          selectedRoom={roomToShow}
+        />
+      )}
     </>
   )
 }
