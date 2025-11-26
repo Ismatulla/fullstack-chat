@@ -25,7 +25,9 @@ export default function ChatWindow({
   selectedRoom,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([])
-  const [typingUsers, setTypingUsers] = useState<string[]>([])
+  const [typingUsers, setTypingUsers] = useState<
+    Array<{ email: string; roomId: string }>
+  >([])
   const [isLoading, setIsLoading] = useState(true)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -73,7 +75,6 @@ export default function ChatWindow({
   // ========== WebSocket listeners ==========
   useEffect(() => {
     const handleNewMessage = (data: Message) => {
-      console.log('📨 New message received:', data)
       setMessages(prev => {
         // Prevent duplicate messages
         if (prev.some(m => m.id === data.id)) return prev
@@ -85,14 +86,20 @@ export default function ChatWindow({
       userId: string
       email: string
       isTyping: boolean
+      roomId: string
     }) => {
       // Don't show typing indicator for current user
       if (data.email === currentUser.email) return
 
       if (data.isTyping) {
-        setTypingUsers(prev => [...new Set([...prev, data.email])])
+        setTypingUsers(prev => {
+          // Remove any existing entry for this user (in case they switched rooms)
+          const filtered = prev.filter(u => u.email !== data.email)
+          // Add new entry with roomId
+          return [...filtered, { email: data.email, roomId: data.roomId }]
+        })
       } else {
-        setTypingUsers(prev => prev.filter(u => u !== data.email))
+        setTypingUsers(prev => prev.filter(u => u.email !== data.email))
       }
     }
 
@@ -274,7 +281,11 @@ export default function ChatWindow({
       })
     }
   }
-  console.log(messages)
+
+  const currentRoomTypingUsers = typingUsers.filter(
+    user => String(user.roomId) == String(selectedRoom.id), // ✅ Convert both to string
+  )
+
   return (
     <div className="flex flex-col h-full w-full bg-background">
       {/* Header */}
@@ -343,12 +354,14 @@ export default function ChatWindow({
                   message={message}
                   onReact={emoji => handleReact(message.id, emoji)}
                   currentUser={currentUser}
+                  room={room}
+                  selectedRoom={selectedRoom}
                 />
               ))}
 
               {/* Typing Indicator */}
-              {typingUsers.length > 0 && (
-                <div className="flex gap-3">
+              {currentRoomTypingUsers.length > 0 && (
+                <div className="flex gap-3 absolute bottom-0">
                   <div className="w-8 shrink-0" />
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
@@ -357,9 +370,9 @@ export default function ChatWindow({
                       <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {typingUsers.length === 1
-                        ? `${typingUsers[0]} is typing...`
-                        : 'Multiple people are typing...'}
+                      {currentRoomTypingUsers.length === 1
+                        ? `${currentRoomTypingUsers[0].email} is typing...`
+                        : `${currentRoomTypingUsers.length} people are typing...`}
                     </span>
                   </div>
                 </div>

@@ -22,6 +22,8 @@ export interface Message {
   userId?: string
   roomId: string
   timestamp: Date
+  createdAt: Date
+  updatedAt: Date
   reactions: Reactions[]
   readBy: string[]
   mentions: string[]

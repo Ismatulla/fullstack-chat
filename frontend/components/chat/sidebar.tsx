@@ -83,7 +83,7 @@ export function Sidebar({
       return
     }
 
-    // socket.emit('join-room', { roomId: String(room.id) })
+    socket.emit('join-room', { roomId: String(room.id) })
   }
 
   return (
@@ -97,8 +97,9 @@ export function Sidebar({
           <div className="flex items-center gap-2">
             {/* Connection Status Indicator */}
             <div
-              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
-                }`}
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
               title={isConnected?.message ? 'Connected' : 'Disconnected'}
             />
             <ThemeToggle />
@@ -157,8 +158,9 @@ export function Sidebar({
               unoptimized
             />
             <div
-              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${isConnected?.message ? 'bg-green-500' : 'bg-red-500'
-                }`}
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${
+                isConnected?.message ? 'bg-green-500' : 'bg-red-500'
+              }`}
             />
           </div>
           <div className="flex-1 min-w-0">

@@ -1,4 +1,4 @@
-import type { Message } from '@/lib/types'
+import type { ChatRoom, Message } from '@/lib/types'
 import { Button } from '../ui/button'
 import { SmilePlus, Check, CheckCheck } from 'lucide-react'
 import { useState } from 'react'
@@ -12,15 +12,18 @@ interface MessageItemProps {
   message: Message
   onReact?: (emoji: string) => void
   currentUser: User
+  selectedRoom: ChatRoom
+  room: ChatRoom
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
 export function MessageItem({
   message,
-
+  room,
   onReact,
   currentUser,
+  selectedRoom,
 }: MessageItemProps) {
   const [showReactions, setShowReactions] = useState<boolean>(false)
 
@@ -31,7 +34,8 @@ export function MessageItem({
       minute: '2-digit',
     })
   }
-  console.log(message.reactions, 'reactions')
+
+  if (String(selectedRoom.id) !== String(room.id)) return null
   return (
     <div
       className={clsx('flex gap-3 group ', {
@@ -65,7 +69,7 @@ export function MessageItem({
             {currentUser?.name}
           </span>
           <span className=" text-xs  text-muted-foreground">
-            {formatTime(message.timestamp)}
+            {formatTime(message.timestamp || message.createdAt)}
           </span>
         </div>
 
@@ -97,7 +101,7 @@ export function MessageItem({
                     key={group.emoji}
                     onClick={() => onReact?.(group.emoji)}
                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs shadow-sm"
-                  // title={group?.users?.map(u => u.name).join(', ')}
+                    // title={group?.users?.map(u => u.name).join(', ')}
                   >
                     <span>{group.emoji}</span>
                     <span className="text-muted-foreground">{group.count}</span>
