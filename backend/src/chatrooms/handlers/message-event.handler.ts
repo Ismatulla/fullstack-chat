@@ -10,15 +10,15 @@ export class MessageEventHandler {
 
   async handleSendMessage(
     client: AuthenticatedSocket,
-    data: { roomId: string; message: string; tempId?: string },
+    data: { roomId: string; content: string; tempId?: string },
   ) {
-    const { roomId, message, tempId } = data;
+    const { roomId, content, tempId } = data;
     const userId = +client.data.userId;
     const email = client.data.email;
 
     try {
       const savedMessage = await this.messagesService.create(
-        message,
+        content,
         userId,
         Number(roomId),
       );
@@ -26,7 +26,7 @@ export class MessageEventHandler {
       const messageData = {
         id: savedMessage?.id,
         roomId,
-        message: savedMessage?.content,
+        content: savedMessage?.content,
         userId,
         email,
         timestamp: savedMessage?.createdAt,

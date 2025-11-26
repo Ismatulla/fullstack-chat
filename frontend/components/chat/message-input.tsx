@@ -10,10 +10,9 @@ import Image from 'next/image'
 
 interface MessageInputProps {
   onSendMessage: (message: string, image: string | null) => void
-  onTyping?: (isTyping: boolean) => void
 }
 
-export function MessageInput({ onSendMessage, onTyping }: MessageInputProps) {
+export function MessageInput({ onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState<string>('')
   const [showEmoji, setShowEmoji] = useState<boolean>(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -24,15 +23,21 @@ export function MessageInput({ onSendMessage, onTyping }: MessageInputProps) {
 
   const pickerTheme = theme === 'dark' ? Theme.DARK : Theme.LIGHT
 
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   const handleSend = () => {
     if (message.trim()) {
       const imageUrl = selectedFile ? URL.createObjectURL(selectedFile) : null
-      console.log(imageUrl)
       onSendMessage(message, imageUrl)
 
       setMessage('')
       setSelectedFile(null)
       inputRef.current?.focus()
+
+      // Stop typing when sent
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
     }
   }
 
@@ -110,7 +115,6 @@ export function MessageInput({ onSendMessage, onTyping }: MessageInputProps) {
               value={message}
               onChange={e => {
                 setMessage(e.target.value)
-                onTyping?.(true)
               }}
               onKeyDown={handleKeyDown}
               className={`pl-${

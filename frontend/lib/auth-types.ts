@@ -1,13 +1,13 @@
 export interface User {
   id?: string
   email: string
-  avatar?: string
+  image?: string
   createdAt?: Date
   name?: string
 }
 
 export interface Auth {
-  id?: string
+  id: string
   email: string
   password: string
   name?: string

@@ -15,7 +15,7 @@ import {
   AuthenticatedSocket,
 } from './services/socket-auth.service';
 import { PresenceService } from './services/presence.service';
-import { RoomAccessService } from './services/room-access.service';
+// import { RoomAccessService } from './services/room-access.service';
 import { SocketEmitterService } from './services/socket-emitter.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 
@@ -41,7 +41,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private socketAuth: SocketAuthService,
     private presence: PresenceService,
-    private roomAccess: RoomAccessService,
+    // private roomAccess: RoomAccessService,
     private emitter: SocketEmitterService,
     private roomHandler: RoomEventHandler,
     private messageHandler: MessageEventHandler,
@@ -95,7 +95,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client,
       data,
       this.presence,
-      this.roomAccess,
+      // this.roomAccess,
     );
   }
 
@@ -119,7 +119,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('send-message')
   async handleMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; message: string; tempId?: string },
+    @MessageBody() data: { roomId: string; content: string; tempId?: string },
   ) {
     return this.messageHandler.handleSendMessage(client, data);
   }

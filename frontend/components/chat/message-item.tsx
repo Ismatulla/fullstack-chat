@@ -1,56 +1,58 @@
 import type { Message } from '@/lib/types'
-import { mockUsers } from '@/lib/mock-data'
 import { Button } from '../ui/button'
 import { SmilePlus, Check, CheckCheck } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
+import { User } from '@/lib/auth-types'
+import groupReactionsByEmoji from '@/helpers/groupReactionsByEmoji'
 
 interface MessageItemProps {
   message: Message
-  isOwn: boolean
-  showAvatar: boolean
   onReact?: (emoji: string) => void
+  currentUser: User
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
 export function MessageItem({
   message,
-  isOwn,
-  showAvatar,
+
   onReact,
+  currentUser,
 }: MessageItemProps) {
   const [showReactions, setShowReactions] = useState<boolean>(false)
-  const user = mockUsers.find(u => u.id === message.userId)
 
+  const isOwn = (message?.sender?.id || message?.userId) === currentUser?.id
   const formatTime = (date: Date) => {
     return new Date(date).toLocaleTimeString('en-Us', {
       hour: '2-digit',
       minute: '2-digit',
     })
   }
-
+  console.log(message.reactions, 'reactions')
   return (
     <div
       className={clsx('flex gap-3 group ', {
         'flex-row-reverse': isOwn,
       })}
     >
-      {showAvatar ? (
-        <div className=" relative h-8 w-8 shrink-0 rounded-full overflow-hidden shadow-sm">
-          {' '}
-          <Image
-            src={user?.avatar || '/placeholder.svg?height=32&width=32'}
-            alt={user?.name || 'User'}
-            fill
-            className="object-cover"
-          />
-        </div>
-      ) : (
-        <div className=" w-8 shrink-0" />
-      )}
+      <div className=" relative h-8 w-8 shrink-0 rounded-full overflow-hidden shadow-sm">
+        {' '}
+        {/* <Image
+          src={currentUser?.image || '/general-room.jpg'}
+          alt={currentUser?.name || 'User'}
+          className="object-cover"
+          fill
+        /> */}
+        <img
+          src={currentUser?.image || '/general-room.jpg'}
+          alt={currentUser?.name || 'User'}
+          className="object-cover"
+        />
+      </div>
+
       {/* Message content */}
       <div
         className={cn(
@@ -58,16 +60,14 @@ export function MessageItem({
           isOwn ? 'items-end' : 'items-start',
         )}
       >
-        {showAvatar && (
-          <div className="flex items-center gap-2 px-3">
-            <span className=" text-sm font-medium text-foreground">
-              {user?.name}
-            </span>
-            <span className=" text-xs  text-muted-foreground">
-              {formatTime(message.timestamp)}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 px-3">
+          <span className=" text-sm font-medium text-foreground">
+            {currentUser?.name}
+          </span>
+          <span className=" text-xs  text-muted-foreground">
+            {formatTime(message.timestamp)}
+          </span>
+        </div>
 
         <div
           className={cn(
@@ -89,17 +89,20 @@ export function MessageItem({
             <p className="text-sm">{message.content}</p>
           </div>
           {/* Reactions */}
-          {Object.keys(message.reactions).length > 0 && (
+          {message?.reactions && message.reactions.length > 0 && (
             <div className="flex gap-1 flex-wrap">
-              {Object.entries(message.reactions).map(([emoji, users]) => (
-                <button
-                  key={emoji}
-                  className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors tex-xs shadow-sm"
-                >
-                  <span>{emoji}</span>
-                  <span className="text-muted-foreground">{users.length}</span>
-                </button>
-              ))}
+              {Object.values(groupReactionsByEmoji(message.reactions)).map(
+                group => (
+                  <button
+                    key={group.emoji}
+                    className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs shadow-sm"
+                    // title={group?.users?.map(u => u.name).join(', ')}
+                  >
+                    <span>{group.emoji}</span>
+                    <span className="text-muted-foreground">{group.count}</span>
+                  </button>
+                ),
+              )}
             </div>
           )}
 
@@ -145,7 +148,7 @@ export function MessageItem({
         {/* Read status  */}
         {isOwn && (
           <div className="flex items-center gap-1 px-3 text-xs text-muted-foreground">
-            {message.readBy.length > 0 ? (
+            {message?.readBy?.length > 0 ? (
               <>
                 <CheckCheck className="h-3 w-3" />
                 <span> Seen by {message.readBy.length}</span>

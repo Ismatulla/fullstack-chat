@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { AuthenticatedSocket } from '../services/socket-auth.service';
 import { PresenceService } from '../services/presence.service';
-import { RoomAccessService } from '../services/room-access.service';
+// import { RoomAccessService } from '../services/room-access.service';
 
 @Injectable()
 export class RoomEventHandler {
@@ -11,7 +11,7 @@ export class RoomEventHandler {
     client: AuthenticatedSocket,
     data: { roomId: string },
     presence: PresenceService,
-    roomAccess: RoomAccessService,
+    // roomAccess: RoomAccessService,
   ) {
     console.log('JOIN ROOM HANDLER REACHED', data);
     if (typeof data === 'string') {
@@ -29,7 +29,7 @@ export class RoomEventHandler {
     const userId = client.data.userId;
 
     try {
-      await roomAccess.verifyAccess(Number(roomId), Number(userId));
+      // await roomAccess.verifyAccess(Number(roomId), Number(userId));
       await client.join(roomId);
       presence.joinRoom(client.id, roomId);
 

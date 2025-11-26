@@ -1,26 +1,41 @@
 export interface User {
   id: string
   name: string
-  avatar: string
+  image: string
   status: 'online' | 'offline' | 'away'
   email?: string
 }
+export interface Reactions {
+  id: string
+  createdAt: string
+  emoji: string
+  user?: {
+    id: string
+    name: string
+    email: string
+  }
+}
 
 export interface Message {
-  id?: string
+  id: string
   content: string
   userId?: string
   roomId: string
   timestamp: Date
-  reactions: Record<string, string[]>
+  reactions: Reactions[]
   readBy: string[]
   mentions: string[]
+  image: null | string
   attachments?: {
     type: 'image' | 'file'
     url: string
     name: string
   }[]
-  image?: null | string
+  sender?: {
+    id: string
+    name: string
+    image: string
+  }
 }
 
 export interface ChatRoom {

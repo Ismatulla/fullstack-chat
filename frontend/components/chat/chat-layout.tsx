@@ -5,10 +5,13 @@ import { Sidebar } from '@/components/chat/sidebar'
 import ChatWindow from '@/components/chat/chat-window'
 import { ChatRoom } from '@/lib/types'
 import { User } from '@/lib/auth-types'
-import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { getAllRoms } from '@/services/chatService'
 import useSWR from 'swr'
+import Image from 'next/image'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
+// socket IO
+import { useSocketEvents } from '@/hooks/useSocketEvents'
 interface ChatLayoutProps {
   defaultUser?: User | null
   defaultRooms?: ChatRoom[]
@@ -16,22 +19,30 @@ interface ChatLayoutProps {
 
 /**
  * Next.js 15+ Best Practice: Client Component Hydration
- * 
+ *
  * This component accepts initial data fetched on the server.
  * It passes this data to hooks (like useSWR) as fallback/initial data.
  * This ensures the UI is interactive immediately without a second fetch,
  * while still allowing client-side revalidation/updates.
  */
-export function ChatLayout({ defaultUser = null, defaultRooms = [] }: ChatLayoutProps) {
+
+export function ChatLayout({
+  defaultUser = null,
+  defaultRooms = [],
+}: ChatLayoutProps) {
   const { user, loading } = useRequireAuth(defaultUser)
-  
-  const { data: rooms, error, isLoading } = useSWR('chatrooms', getAllRoms, {
+  const { isConnected } = useSocketEvents()
+
+  const {
+    data: rooms,
+    error,
+    isLoading,
+  } = useSWR('chatrooms', getAllRoms, {
     fallbackData: defaultRooms,
-    revalidateOnFocus: false
+    revalidateOnFocus: false,
   })
 
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null)
-  const roomToShow = selectedRoom || rooms?.[0]
 
   // Only show loading spinner if we really don't have data and are loading
   if ((isLoading && !rooms) || loading) {
@@ -48,16 +59,32 @@ export function ChatLayout({ defaultUser = null, defaultRooms = [] }: ChatLayout
     <>
       <Sidebar
         currentUser={user}
-        selectedRoom={roomToShow}
+        selectedRoom={selectedRoom}
         onSelectRoom={setSelectedRoom}
+        isConnected={isConnected}
       />
 
-      {rooms?.[0] && (
+      {selectedRoom ? (
         <ChatWindow
-          room={rooms?.[0]}
+          room={
+            rooms?.find((r: ChatRoom) => r.id === selectedRoom.id) ||
+            selectedRoom
+          }
           currentUser={user}
-          selectedRoom={roomToShow}
+          selectedRoom={selectedRoom}
         />
+      ) : (
+        <div className=" flex items-center justify-center  w-full flex-col gap-2">
+          <Image
+            src="/join-room-notification.svg"
+            alt="notification "
+            width="88"
+            height="104"
+          />
+          <p className="font-bold text-gray-500">
+            Please select the channel to see messages
+          </p>
+        </div>
       )}
     </>
   )

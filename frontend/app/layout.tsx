@@ -16,10 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        suppressHydrationWarning
-        className="font-sans antialiased flex  mx-auto"
-      >
+      <body className="font-sans antialiased flex  mx-auto">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>

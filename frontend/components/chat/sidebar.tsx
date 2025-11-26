@@ -17,17 +17,20 @@ import useSWR from 'swr'
 import { deleteSingleChat, getAllRoms } from '@/services/chatService'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { RoomItem } from './rooms/RoomItem'
+import { socket } from '@/socket/socket'
 
 interface SidebarProps {
   currentUser?: User
   onSelectRoom: (room: ChatRoom) => void
   selectedRoom: Messages | null
+  isConnected: { message: string; userId: string } | null
 }
 
 export function Sidebar({
   currentUser,
   onSelectRoom,
   selectedRoom,
+  isConnected,
 }: SidebarProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -37,6 +40,8 @@ export function Sidebar({
 
   const handleLogout = async () => {
     try {
+      if (selectedRoom && selectedRoom.id) {
+      }
       await logout()
       router.push('/login')
     } catch (err) {
@@ -55,7 +60,9 @@ export function Sidebar({
       const updatedRooms = rooms.filter((room: Messages) => room.id !== roomId)
 
       if (selectedRoom?.id === roomId) {
-        onSelectRoom(updatedRooms[0] || null)
+        const nextRoom = updatedRooms[0] || null
+        onSelectRoom(nextRoom)
+        // Join next room if exists
       }
       await mutate(updatedRooms, { revalidate: false })
     } catch (error: unknown) {
@@ -68,6 +75,17 @@ export function Sidebar({
     setEditingRoom(room)
   }
 
+  const handleSelectRoom = (room: ChatRoom) => {
+    // Update selected room
+    onSelectRoom(room)
+    if (!socket.connected) {
+      console.error('❌ Socket not connected! Call socket.connect() first')
+      return
+    }
+
+    socket.emit('join-room', { roomId: String(room.id) })
+  }
+
   return (
     <div className="flex flex-col h-full w-96 bg-sidebar border-r border-sidebar-border shadow-sm">
       {/* Header */}
@@ -76,7 +94,16 @@ export function Sidebar({
           <h1 className="text-xl font-bold text-sidebar-foreground">
             Messages
           </h1>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            {/* Connection Status Indicator */}
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+              title={isConnected?.message ? 'Connected' : 'Disconnected'}
+            />
+            <ThemeToggle />
+          </div>
         </div>
         <div className="flex items-center justify-center gap-1">
           <div className="relative flex-1">
@@ -100,7 +127,7 @@ export function Sidebar({
               key={room.id}
               room={room}
               isSelected={selectedRoom?.id === room.id}
-              onSelect={onSelectRoom}
+              onSelect={handleSelectRoom}
               onDelete={handleDeleteChatrooms}
               onEdit={handleEditRoom}
             />
@@ -124,19 +151,25 @@ export function Sidebar({
         <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer">
           <div className="relative h-10 w-10 shrink-0 rounded-full overflow-hidden shadow-sm">
             <Image
-              src={currentUser?.avatar || '/general-room.jpg'}
+              src={currentUser?.image || '/general-room.jpg'}
               alt={currentUser?.name || 'User'}
               fill
               className="object-cover"
               unoptimized
             />
-            <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-sidebar" />
+            <div
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${
+                isConnected?.message ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-medium text-sm truncate text-sidebar-foreground">
               {currentUser?.name}
             </div>
-            <div className="text-xs opacity-70">Online</div>
+            <div className="text-xs opacity-70">
+              {isConnected?.message ? 'Online' : 'Offline'}
+            </div>
           </div>
           <Button
             size="icon"

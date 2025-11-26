@@ -32,7 +32,7 @@ export class PresenceService {
   joinRoom(socketId: string, roomId: string): void {
     const presence = this.userPresence.get(socketId);
     if (presence) {
-      presence.rooms.delete(roomId);
+      presence.rooms.add(roomId);
     }
   }
 

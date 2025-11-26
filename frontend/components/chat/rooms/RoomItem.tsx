@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Edit, Trash } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import type { ChatRoom } from '@/lib/types'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { AvatarImg } from '../Avatar'
+import { socket } from '@/socket/socket'
 
 interface RoomItemProps {
   room: ChatRoom
@@ -22,8 +24,15 @@ export function RoomItem({
 }: RoomItemProps) {
   const [isHovered, setIsHovered] = useState(false)
   const { user } = useRequireAuth()
-  console.log(room, 'room item render')
-  console.log(user, 'user in room item')
+
+  useEffect(() => {
+    if (room.id) {
+      socket.connect()
+      socket.on('joined-room', data => {
+        console.log('✅ JOINED ROOM RESPONSE:', data)
+      })
+    }
+  }, [room.id])
   return (
     <button
       onMouseEnter={() => setIsHovered(true)}
@@ -36,13 +45,17 @@ export function RoomItem({
           : 'text-sidebar-foreground hover:bg-sidebar-accent',
       )}
     >
-      <div className="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-linear-to-br from-purple-400 to-pink-400 shadow-sm">
-        <Image
-          src={room.image || '/general-room.jpg'}
-          alt={room.name}
-          fill
-          className="object-cover"
-        />
+      <div className="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-linear-to-br">
+        {room.image ? (
+          <Image
+            src={room.image}
+            alt={room.name}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <AvatarImg />
+        )}
       </div>
 
       <div className="flex-1 min-w-0 text-left">

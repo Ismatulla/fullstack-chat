@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
@@ -18,7 +19,7 @@ import { CreateChatRoomDto } from '../dto/create-chatroom.dto';
 import { CreateMessageDto } from '../dto/create-message.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ChatroomOwnerGuard } from '../guards/chatroom-owner.guard';
-import { ChatroomAccessGuard } from '../guards/chatroom-access.guard';
+// import { ChatroomAccessGuard } from '../guards/chatroom-access.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { CurrentChatroom } from '../decorators/current-chatroom.decorator';
 import { User } from '../../users/entities/user.entity';
@@ -70,10 +71,10 @@ export class ChatroomsController {
 
   //Get messages for specific chatroom
   @Get(':id/messages')
-  @UseGuards(ChatroomAccessGuard)
+  // @UseGuards(ChatroomAccessGuard)
   async getRoomMessages(
     @Param('id', ParseIntPipe) id: number,
-    @Query('limit', ParseIntPipe) limit?: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
     @Query('before') before?: string,
   ) {
     const beforeDate = before ? new Date(before) : undefined;
@@ -81,7 +82,7 @@ export class ChatroomsController {
   }
 
   @Post(':id/messages')
-  @UseGuards(ChatroomAccessGuard)
+  // @UseGuards(ChatroomAccessGuard)
   async createMessage(
     @Param('id', ParseIntPipe) id: number,
     @Body() createMessageDto: CreateMessageDto,
@@ -92,7 +93,7 @@ export class ChatroomsController {
 
   // Search messages in chatroom
   @Get(':id/messages/search')
-  @UseGuards(ChatroomAccessGuard)
+  // @UseGuards(ChatroomAccessGuard)
   async searchMessages(
     @Param('id', ParseIntPipe) id: number,
     @Query('q') query: string,

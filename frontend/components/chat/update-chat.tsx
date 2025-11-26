@@ -20,7 +20,7 @@ interface EditModalProps {
   room: ChatRoom
   editModalOpen: boolean
   setEditModalOpen: (open: boolean) => void
-  onSelectRoom?: (room: ChatRoom) => void
+  onSelectRoom: (room: ChatRoom) => void
   mutate: (
     data?: ChatRooms[],
     shouldRevalidate?: boolean,
