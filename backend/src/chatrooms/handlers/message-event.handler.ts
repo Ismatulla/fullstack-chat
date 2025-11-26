@@ -6,7 +6,7 @@ import { MessagesService } from '../services/message.service';
 
 @Injectable()
 export class MessageEventHandler {
-  constructor(private messagesService: MessagesService) {}
+  constructor(private messagesService: MessagesService) { }
 
   async handleSendMessage(
     client: AuthenticatedSocket,
@@ -57,15 +57,18 @@ export class MessageEventHandler {
     const userId = +client.data.userId;
 
     try {
-      await this.messagesService.markAsRead(messageId, userId);
+      const receipt = await this.messagesService.markAsRead(messageId, userId);
 
-      // Notify others in the room
-      client.to(roomId).emit('message-status', {
-        messageId,
-        userId,
-        status: 'read',
-        timestamp: new Date(),
-      });
+      if (receipt) {
+        // Notify others in the room
+        client.to(roomId).emit('message-status', {
+          messageId,
+          userId,
+          user: receipt.user,
+          status: 'read',
+          timestamp: receipt.readAt,
+        });
+      }
     } catch {
       client.emit('error', { message: 'Failed to mark message as read' });
     }

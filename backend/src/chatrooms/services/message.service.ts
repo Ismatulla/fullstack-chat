@@ -16,7 +16,7 @@ export class MessagesService {
 
     @InjectRepository(MessageRead)
     private readRepo: Repository<MessageRead>,
-  ) {}
+  ) { }
 
   async create(content: string, userId: number, roomId: number) {
     const message = this.messageRepo.create({
@@ -62,6 +62,7 @@ export class MessagesService {
         message: { id: messageId },
         user: { id: userId },
       },
+      relations: ['user'],
     });
     if (existing) {
       return existing;
@@ -71,7 +72,12 @@ export class MessagesService {
       user: { id: userId },
       readAt: new Date(),
     });
-    return await this.readRepo.save(readReceipt);
+    await this.readRepo.save(readReceipt);
+
+    return await this.readRepo.findOne({
+      where: { id: readReceipt.id },
+      relations: ['user'],
+    });
   }
 
   // Get read receipts for a message

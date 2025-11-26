@@ -25,7 +25,16 @@ export interface Message {
   createdAt: Date
   updatedAt: Date
   reactions: Reactions[]
-  readBy: string[]
+  readReceipts: {
+    id: number
+    user: {
+      id: string
+      name: string
+      email: string
+      image: string
+    }
+    readAt: string
+  }[]
   mentions: string[]
   image: null | string
   attachments?: {

@@ -182,6 +182,44 @@ export default function ChatWindow({
       )
     }
 
+    const handleMessageStatus = (data: {
+      messageId: number
+      userId: number
+      user: User
+      status: 'read'
+      timestamp: Date
+    }) => {
+      if (data.status !== 'read') return
+
+      setMessages(prev =>
+        prev.map(msg => {
+          if (String(msg.id) !== String(data.messageId)) return msg
+
+          const existing = msg.readReceipts || []
+          if (existing.some(r => String(r.user.id) === String(data.userId))) {
+            return msg
+          }
+
+          return {
+            ...msg,
+            readReceipts: [
+              ...existing,
+              {
+                id: Date.now(), // Temp ID
+                user: {
+                  id: String(data.userId),
+                  name: data.user?.name || 'User',
+                  email: data.user?.email || '',
+                  image: data.user?.image || '',
+                },
+                readAt: new Date(data.timestamp).toISOString(),
+              },
+            ],
+          }
+        }),
+      )
+    }
+
     const handleError = (error: unknown) => {
       console.error('Socket Error:', error)
       //revert optimistic updates here ,use React19 useOptimistic update
@@ -193,6 +231,7 @@ export default function ChatWindow({
     socket.on(SOCKET_LISTEN.USER_TYPING, handleTyping)
     socket.on(SOCKET_LISTEN.REACTION_ADDED, handleReactionAdded)
     socket.on(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
+    socket.on(SOCKET_LISTEN.MESSAGE_STATUS, handleMessageStatus)
     socket.on(SOCKET_LISTEN.ERROR, handleError)
 
     return () => {
@@ -201,9 +240,64 @@ export default function ChatWindow({
       socket.off(SOCKET_LISTEN.USER_TYPING, handleTyping)
       socket.off(SOCKET_LISTEN.REACTION_ADDED, handleReactionAdded)
       socket.off(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
+      socket.off(SOCKET_LISTEN.MESSAGE_STATUS, handleMessageStatus)
       socket.off(SOCKET_LISTEN.ERROR, handleError)
     }
   }, [currentUser])
+
+  // ========== Mark messages as read ==========
+  useEffect(() => {
+    if (!socket.connected || !currentUser || messages.length === 0) return
+
+    const unreadMessages = messages.filter(
+      msg =>
+        String(msg.sender?.id) !== String(currentUser.id) && // Not my message
+        !msg.readReceipts?.some(
+          r => String(r.user?.id) === String(currentUser.id),
+        ), // Not already read by me
+    )
+
+    if (unreadMessages.length === 0) return
+
+    // Emit read event for unread messages
+    unreadMessages.forEach(msg => {
+      socket.emit(SOCKET_EMIT.MESSAGE_READ, {
+        roomId: String(selectedRoom.id),
+        messageId: Number(msg.id),
+      })
+    })
+
+    // Optimistically update locally
+    setMessages(prev =>
+      prev.map(msg => {
+        if (
+          String(msg.sender?.id) === String(currentUser.id) ||
+          msg.readReceipts?.some(
+            r => String(r.user?.id) === String(currentUser.id),
+          )
+        ) {
+          return msg
+        }
+
+        return {
+          ...msg,
+          readReceipts: [
+            ...(msg.readReceipts || []),
+            {
+              id: Date.now(),
+              user: {
+                id: String(currentUser.id),
+                name: currentUser.name || 'User',
+                email: currentUser.email || '',
+                image: currentUser.image || '',
+              },
+              readAt: new Date().toISOString(),
+            },
+          ],
+        }
+      }),
+    )
+  }, [messages, currentUser, selectedRoom.id])
 
   // ========== Auto-scroll to bottom on new messages ==========
   useEffect(() => {

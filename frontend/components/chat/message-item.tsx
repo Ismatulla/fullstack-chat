@@ -101,7 +101,7 @@ export function MessageItem({
                     key={group.emoji}
                     onClick={() => onReact?.(group.emoji)}
                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs shadow-sm"
-                    // title={group?.users?.map(u => u.name).join(', ')}
+                  // title={group?.users?.map(u => u.name).join(', ')}
                   >
                     <span>{group.emoji}</span>
                     <span className="text-muted-foreground">{group.count}</span>
@@ -150,20 +150,30 @@ export function MessageItem({
             ))}
           </div>
         )}
-        {/* Read status  */}
         {isOwn && (
           <div className="flex items-center gap-1 px-3 text-xs text-muted-foreground">
-            {message?.readBy?.length > 0 ? (
-              <>
-                <CheckCheck className="h-3 w-3" />
-                <span> Seen by {message.readBy.length}</span>
-              </>
-            ) : (
-              <>
-                <Check className="h-3 w-3" />
-                <span>Delivered</span>
-              </>
-            )}
+            {(() => {
+              const validReceipts =
+                message.readReceipts?.filter(
+                  r =>
+                    String(r.user?.id) !==
+                    String(message.sender?.id || message.userId),
+                ) || []
+
+              return validReceipts.length > 0 ? (
+                <div
+                  title={`Seen by ${validReceipts.map(r => r.user?.name || 'Unknown').join(', ')}`}
+                >
+                  <CheckCheck className="h-3 w-3 text-blue-500" />
+                  <span> Seen by {validReceipts.length}</span>
+                </div>
+              ) : (
+                <>
+                  <Check className="h-3 w-3" />
+                  <span>Delivered</span>
+                </>
+              )
+            })()}
           </div>
         )}
       </div>
