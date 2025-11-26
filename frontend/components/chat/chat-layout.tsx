@@ -31,7 +31,7 @@ export function ChatLayout({
   defaultRooms = [],
 }: ChatLayoutProps) {
   const { user, loading } = useRequireAuth(defaultUser)
-  const { isConnected } = useSocketEvents()
+  const { isConnected } = useSocketEvents(user) // Pass user to connect only when authenticated
 
   const {
     data: rooms,

@@ -172,7 +172,7 @@ export default function ChatWindow({
       )
     }
 
-    const handleError = (error: any) => {
+    const handleError = (error: unknown) => {
       console.error('Socket Error:', error)
       //revert optimistic updates here ,use React19 useOptimistic update
     }
@@ -193,7 +193,7 @@ export default function ChatWindow({
       socket.off(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
       socket.off(SOCKET_LISTEN.ERROR, handleError)
     }
-  }, [currentUser]) 
+  }, [currentUser])
 
   // ========== Auto-scroll to bottom on new messages ==========
   useEffect(() => {
