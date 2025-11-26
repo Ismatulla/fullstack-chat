@@ -95,8 +95,9 @@ export function MessageItem({
                 group => (
                   <button
                     key={group.emoji}
+                    onClick={() => onReact?.(group.emoji)}
                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs shadow-sm"
-                    // title={group?.users?.map(u => u.name).join(', ')}
+                  // title={group?.users?.map(u => u.name).join(', ')}
                   >
                     <span>{group.emoji}</span>
                     <span className="text-muted-foreground">{group.count}</span>

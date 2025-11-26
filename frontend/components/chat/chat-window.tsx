@@ -35,6 +35,20 @@ export default function ChatWindow({
   useEffect(() => {
     if (!selectedRoom?.id) return
 
+    const joinRoom = () => {
+      socket.emit(SOCKET_EMIT.JOIN_ROOM, { roomId: String(selectedRoom.id) })
+    }
+
+    // Join immediately
+    if (socket.connected) {
+      joinRoom()
+    } else {
+      socket.connect()
+    }
+
+    // Re-join on reconnect
+    socket.on('connect', joinRoom)
+
     const fetchMessages = async () => {
       setIsLoading(true)
       try {
@@ -50,13 +64,21 @@ export default function ChatWindow({
     }
 
     fetchMessages()
-  }, [selectedRoom.id])
+
+    return () => {
+      socket.off('connect', joinRoom)
+    }
+  }, [selectedRoom?.id])
 
   // ========== WebSocket listeners ==========
   useEffect(() => {
     const handleNewMessage = (data: Message) => {
       console.log('📨 New message received:', data)
-      setMessages(prev => [...prev, data])
+      setMessages(prev => {
+        // Prevent duplicate messages
+        if (prev.some(m => m.id === data.id)) return prev
+        return [...prev, data]
+      })
     }
 
     const handleTyping = (data: {
@@ -71,32 +93,75 @@ export default function ChatWindow({
       }
     }
 
-    const handleReactionAdded = data => {
+    const handleReactionAdded = (data: {
+      messageId: number
+      userId: number
+      emoji: string
+    }) => {
+      console.log('➕ Reaction Added Event:', data)
       setMessages(prev =>
         prev.map(msg => {
-          if (msg.id !== data.messageId) return msg
+          if (String(msg.id) !== String(data.messageId)) return msg
 
           const existing = msg.reactions || []
 
-          // remove old reaction of same user
-          const filtered = existing.filter(r => r.user?.id !== data.userId)
+          const alreadyExists = existing.some(
+            r =>
+              String(r.user?.id) === String(data.userId) &&
+              r.emoji === data.emoji,
+          )
+          if (alreadyExists) return msg
+
+          const filtered = existing.filter(
+            r =>
+              !(
+                String(r.user?.id) === String(data.userId) &&
+                r.emoji === data.emoji
+              ),
+          )
+
+          const newReaction: Reactions = {
+            id: `temp-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            emoji: data.emoji,
+            user: {
+              id: String(data.userId),
+              name:
+                String(data.userId) === String(currentUser.id)
+                  ? currentUser.name || 'User'
+                  : 'User',
+              email:
+                String(data.userId) === String(currentUser.id)
+                  ? currentUser.email || ''
+                  : '',
+            },
+          }
 
           return {
             ...msg,
-            reactions: [...filtered, data],
+            reactions: [...filtered, newReaction],
           }
         }),
       )
     }
 
-    const handleReactionRemoved = data => {
+    const handleReactionRemoved = (data: {
+      messageId: number
+      userId: number
+      emoji: string
+    }) => {
       setMessages(prev =>
         prev.map(msg => {
-          if (msg.id !== data.messageId) return msg
+          // Ensure both IDs are strings for comparison
+          if (String(msg.id) !== String(data.messageId)) return msg
 
           const existing = msg.reactions || []
           const reactions = existing.filter(
-            r => !(r.user?.id === data.userId && r.emoji === data.emoji),
+            r =>
+              !(
+                String(r.user?.id) === String(data.userId) &&
+                r.emoji === data.emoji
+              ),
           )
 
           return {
@@ -107,20 +172,28 @@ export default function ChatWindow({
       )
     }
 
+    const handleError = (error: any) => {
+      console.error('Socket Error:', error)
+      //revert optimistic updates here ,use React19 useOptimistic update
+    }
+
     socket.connect()
     socket.on(SOCKET_LISTEN.MESSAGE_SENT, handleNewMessage)
     socket.on(SOCKET_LISTEN.MESSAGE_NEW, handleNewMessage)
     socket.on(SOCKET_LISTEN.USER_TYPING, handleTyping)
     socket.on(SOCKET_LISTEN.REACTION_ADDED, handleReactionAdded)
     socket.on(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
+    socket.on(SOCKET_LISTEN.ERROR, handleError)
 
     return () => {
-      socket.off('message-received', handleNewMessage)
-      socket.off('user-typing', handleTyping)
-      socket.off('reaction-added', handleReactionAdded)
-      socket.off('reaction-removed', handleReactionRemoved)
+      socket.off(SOCKET_LISTEN.MESSAGE_SENT, handleNewMessage)
+      socket.off(SOCKET_LISTEN.MESSAGE_NEW, handleNewMessage)
+      socket.off(SOCKET_LISTEN.USER_TYPING, handleTyping)
+      socket.off(SOCKET_LISTEN.REACTION_ADDED, handleReactionAdded)
+      socket.off(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
+      socket.off(SOCKET_LISTEN.ERROR, handleError)
     }
-  }, [])
+  }, [currentUser]) 
 
   // ========== Auto-scroll to bottom on new messages ==========
   useEffect(() => {
@@ -140,9 +213,49 @@ export default function ChatWindow({
   // ========== Handle reactions ==========
   const handleReact = (messageId: string, emoji: string) => {
     const message = messages.find(m => m.id === messageId)
-    const hasReacted = message?.reactions?.some(
-      react => react.user?.id === String(currentUser.id),
+    if (!message) return
+
+    const hasReacted = message.reactions?.some(
+      react =>
+        String(react.user?.id) === String(currentUser.id) &&
+        react.emoji === emoji,
     )
+
+    // Optimistic Update
+    setMessages(prev =>
+      prev.map(msg => {
+        if (msg.id !== messageId) return msg
+
+        const existing = msg.reactions || []
+        let newReactions = [...existing]
+
+        if (hasReacted) {
+          // Remove locally
+          newReactions = newReactions.filter(
+            r =>
+              !(
+                String(r.user?.id) === String(currentUser.id) &&
+                r.emoji === emoji
+              ),
+          )
+        } else {
+          // Add locally
+          const newReaction: Reactions = {
+            id: `temp-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            emoji: emoji,
+            user: {
+              id: String(currentUser.id),
+              name: currentUser.name || 'User',
+              email: currentUser.email || '',
+            },
+          }
+          newReactions.push(newReaction)
+        }
+        return { ...msg, reactions: newReactions }
+      }),
+    )
+
     socket.connect()
     if (hasReacted) {
       socket.emit(SOCKET_EMIT.REMOVE_REACTION, {
