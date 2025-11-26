@@ -8,19 +8,12 @@ interface ConnectedData {
   userId: string
 }
 
-// Module-level variable to store connected data
 let connectedDataRef: ConnectedData | null = null
 
-/**
- * Hook to manage socket connection based on authentication state.
- * Uses useSyncExternalStore to properly sync with socket connection state.
- * 
- * @param user - The authenticated user object (null if not authenticated)
- */
 export function useSocketEvents(user?: User | null) {
   // Subscribe to the custom 'connected' event from backend
   const connectedData = useSyncExternalStore<ConnectedData | null>(
-    (callback) => {
+    callback => {
       const handleConnected = (data: ConnectedData) => {
         // Store the data in a module-level variable
         connectedDataRef = data
@@ -41,10 +34,10 @@ export function useSocketEvents(user?: User | null) {
       }
     },
     () => connectedDataRef,
-    () => null
+    () => null,
   )
 
-  // Manage socket connection based on auth state
+ 
   useEffect(() => {
     if (!user) {
       // Disconnect if user logs out

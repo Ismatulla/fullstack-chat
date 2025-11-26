@@ -7,16 +7,20 @@ import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react'
 import { useTheme } from 'next-themes'
 import { FileUploadButton } from './file-uploadbtn'
 import Image from 'next/image'
+import { socket } from '@/socket/socket'
+import { SOCKET_EMIT } from '@/lib/socket-events'
 
 interface MessageInputProps {
   onSendMessage: (message: string, image: string | null) => void
+  roomId: string
 }
 
-export function MessageInput({ onSendMessage }: MessageInputProps) {
+export function MessageInput({ onSendMessage, roomId }: MessageInputProps) {
   const [message, setMessage] = useState<string>('')
   const [showEmoji, setShowEmoji] = useState<boolean>(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [isTyping, setIsTyping] = useState<boolean>(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const { theme } = useTheme()
@@ -24,6 +28,17 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
   const pickerTheme = theme === 'dark' ? Theme.DARK : Theme.LIGHT
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Emit typing stopped event
+  const stopTyping = () => {
+    if (isTyping) {
+      socket.emit(SOCKET_EMIT.TYPING, {
+        roomId,
+        isTyping: false,
+      })
+      setIsTyping(false)
+    }
+  }
 
   const handleSend = () => {
     if (message.trim()) {
@@ -35,6 +50,7 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
       inputRef.current?.focus()
 
       // Stop typing when sent
+      stopTyping()
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
       }
@@ -45,6 +61,35 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setMessage(value)
+
+    // Emit typing event
+    if (value.trim() && !isTyping) {
+      socket.emit(SOCKET_EMIT.TYPING, {
+        roomId,
+        isTyping: true,
+      })
+      setIsTyping(true)
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    // Set new timeout to stop typing after 2 seconds of inactivity
+    if (value.trim()) {
+      typingTimeoutRef.current = setTimeout(() => {
+        stopTyping()
+      }, 2000)
+    } else {
+      // If input is empty, stop typing immediately
+      stopTyping()
     }
   }
 
@@ -113,13 +158,10 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
               ref={inputRef}
               placeholder="Type a message..."
               value={message}
-              onChange={e => {
-                setMessage(e.target.value)
-              }}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              className={`pl-${
-                preview ? '14' : '4'
-              } min-h-10 resize-none rounded-lg border-border focus:ring-2 focus:ring-primary/50`}
+              className={`pl-${preview ? '14' : '4'
+                } min-h-10 resize-none rounded-lg border-border focus:ring-2 focus:ring-primary/50`}
             />
           </div>
 

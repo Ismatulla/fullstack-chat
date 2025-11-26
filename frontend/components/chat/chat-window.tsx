@@ -86,6 +86,9 @@ export default function ChatWindow({
       email: string
       isTyping: boolean
     }) => {
+      // Don't show typing indicator for current user
+      if (data.email === currentUser.email) return
+
       if (data.isTyping) {
         setTypingUsers(prev => [...new Set([...prev, data.email])])
       } else {
@@ -369,7 +372,10 @@ export default function ChatWindow({
       </ScrollArea>
 
       {/* Input */}
-      <MessageInput onSendMessage={handleSendMessage} />
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        roomId={String(selectedRoom.id)}
+      />
     </div>
   )
 }
