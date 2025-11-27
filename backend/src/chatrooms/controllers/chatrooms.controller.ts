@@ -32,7 +32,7 @@ export class ChatroomsController {
   constructor(
     private readonly chatroomsService: ChatroomsService,
     private readonly messagesService: MessagesService,
-  ) {}
+  ) { }
 
   @Post()
   create(
@@ -53,8 +53,8 @@ export class ChatroomsController {
   }
 
   @Get()
-  findAll() {
-    return this.chatroomsService.findAll();
+  findAll(@CurrentUser() user: User) {
+    return this.chatroomsService.findAll(user.id);
   }
 
   @Get(':id')

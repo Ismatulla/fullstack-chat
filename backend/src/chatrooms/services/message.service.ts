@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Message } from '../entities/message.entity';
 import { MessageReaction } from '../entities/message-reaction.entity';
 import { MessageRead } from '../entities/message-read.entity';
@@ -79,6 +79,54 @@ export class MessagesService {
     return await this.readRepo.findOne({
       where: { id: readReceipt.id },
       relations: ['user'],
+    });
+  }
+
+  // Mark all messages in a room as read
+  async markRoomAsRead(roomId: number, userId: number) {
+    console.log(`[markRoomAsRead] Marking room ${roomId} as read for user ${userId}`);
+
+    // Find all messages in the room that are NOT sent by the user
+    // and do NOT have a read receipt from the user
+    const unreadMessages = await this.messageRepo
+      .createQueryBuilder('message')
+      .leftJoin('message.sender', 'sender')
+      .where('message.chatRoom = :roomId', { roomId })
+      .andWhere('sender.id != :userId', { userId })
+      .andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('read.messageId')
+          .from(MessageRead, 'read')
+          .where('read.userId = :userId')
+          .getQuery();
+        return 'message.id NOT IN ' + subQuery;
+      })
+      .setParameter('userId', userId)
+      .getMany();
+
+    console.log(`[markRoomAsRead] Found ${unreadMessages.length} unread messages`);
+
+    if (unreadMessages.length === 0) {
+      return;
+    }
+
+    const readReceipts = unreadMessages.map((msg) =>
+      this.readRepo.create({
+        message: { id: msg.id },
+        user: { id: userId },
+        readAt: new Date(),
+      }),
+    );
+
+    const savedReceipts = await this.readRepo.save(readReceipts);
+    console.log(`[markRoomAsRead] Saved ${savedReceipts.length} read receipts`);
+
+    // Return receipts with user relation for notification
+    return await this.readRepo.find({
+      where: {
+        id: In(savedReceipts.map(r => r.id))
+      },
+      relations: ['user', 'message']
     });
   }
 

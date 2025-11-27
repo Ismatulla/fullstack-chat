@@ -75,6 +75,9 @@ export default function ChatWindow({
   // ========== WebSocket listeners ==========
   useEffect(() => {
     const handleNewMessage = (data: Message) => {
+      // Only add message if it belongs to the current room
+      if (String(data.roomId) !== String(selectedRoom.id)) return
+
       setMessages(prev => {
         // Prevent duplicate messages
         if (prev.some(m => m.id === data.id)) return prev
@@ -243,7 +246,7 @@ export default function ChatWindow({
       socket.off(SOCKET_LISTEN.MESSAGE_STATUS, handleMessageStatus)
       socket.off(SOCKET_LISTEN.ERROR, handleError)
     }
-  }, [currentUser])
+  }, [currentUser, selectedRoom.id])
 
   // ========== Mark messages as read ==========
   useEffect(() => {
@@ -260,11 +263,16 @@ export default function ChatWindow({
     if (unreadMessages.length === 0) return
 
     // Emit read event for unread messages
-    unreadMessages.forEach(msg => {
-      socket.emit(SOCKET_EMIT.MESSAGE_READ, {
-        roomId: String(selectedRoom.id),
-        messageId: Number(msg.id),
-      })
+    // unreadMessages.forEach(msg => {
+    //   socket.emit(SOCKET_EMIT.MESSAGE_READ, {
+    //     roomId: String(selectedRoom.id),
+    //     messageId: Number(msg.id),
+    //   })
+    // })
+
+    // Emit mark-room-read for bulk update
+    socket.emit(SOCKET_EMIT.MARK_ROOM_READ, {
+      roomId: String(selectedRoom.id),
     })
 
     // Optimistically update locally

@@ -58,8 +58,13 @@ export function RoomItem({
         )}
       </div>
 
-      <div className="flex-1 min-w-0 text-left">
+      <div className="flex-1 min-w-0 text-left flex justify-between items-center">
         <div className="font-medium truncate">{room.name}</div>
+        {room.unreadCount && room.unreadCount > 0 ? (
+          <div className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            {room.unreadCount}
+          </div>
+        ) : null}
       </div>
 
       {user?.id === room?.owner?.id && isHovered && isSelected && (

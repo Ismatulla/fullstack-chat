@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
   Index,
@@ -30,4 +31,7 @@ export class Chatroom {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany('Message', 'chatRoom')
+  messages: any[];
 }

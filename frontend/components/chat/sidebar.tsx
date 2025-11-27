@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ChatRoom, Messages } from '@/lib/types'
 import type { User } from '@/lib/auth-types'
@@ -78,6 +78,18 @@ export function Sidebar({
   const handleSelectRoom = (room: ChatRoom) => {
     // Update selected room
     onSelectRoom(room)
+
+    // Reset unread count locally
+    if (rooms) {
+      const updatedRooms = rooms.map((r: ChatRoom) => {
+        if (r.id === room.id) {
+          return { ...r, unreadCount: 0 }
+        }
+        return r
+      })
+      mutate(updatedRooms, { revalidate: false })
+    }
+
     if (!socket.connected) {
       console.error('❌ Socket not connected! Call socket.connect() first')
       return
@@ -85,6 +97,32 @@ export function Sidebar({
 
     socket.emit('join-room', { roomId: String(room.id) })
   }
+
+  // Listen for new messages to update unread count
+  useEffect(() => {
+    if (!socket.connected) socket.connect()
+
+    const handleNewMessage = (data: { roomId: string; userId: number }) => {
+      // Don't increment for own messages
+      if (String(data.userId) === String(currentUser?.id)) return
+
+      // If message is for a different room, increment unread count
+      if (String(selectedRoom?.id) !== String(data.roomId) && rooms) {
+        const updatedRooms = rooms.map((r: ChatRoom) => {
+          if (String(r.id) === String(data.roomId)) {
+            return { ...r, unreadCount: (r.unreadCount || 0) + 1 }
+          }
+          return r
+        })
+        mutate(updatedRooms, { revalidate: false })
+      }
+    }
+
+    socket.on('new-message', handleNewMessage)
+    return () => {
+      socket.off('new-message', handleNewMessage)
+    }
+  }, [rooms, selectedRoom, mutate, currentUser])
 
   return (
     <div className="flex flex-col h-full w-96 bg-sidebar border-r border-sidebar-border shadow-sm">
@@ -97,9 +135,8 @@ export function Sidebar({
           <div className="flex items-center gap-2">
             {/* Connection Status Indicator */}
             <div
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`}
+              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
+                }`}
               title={isConnected?.message ? 'Connected' : 'Disconnected'}
             />
             <ThemeToggle />
@@ -158,9 +195,8 @@ export function Sidebar({
               unoptimized
             />
             <div
-              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${
-                isConnected?.message ? 'bg-green-500' : 'bg-red-500'
-              }`}
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${isConnected?.message ? 'bg-green-500' : 'bg-red-500'
+                }`}
             />
           </div>
           <div className="flex-1 min-w-0">

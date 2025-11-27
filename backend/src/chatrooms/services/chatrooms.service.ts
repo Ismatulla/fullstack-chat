@@ -16,7 +16,7 @@ export class ChatroomsService {
   constructor(
     @InjectRepository(Chatroom)
     private chatroomRepo: Repository<Chatroom>,
-  ) {}
+  ) { }
 
   async create(createChatRoomDto: CreateChatRoomDto, owner: User) {
     const normalizedName = createChatRoomDto.name.trim();
@@ -82,11 +82,18 @@ export class ChatroomsService {
     return await this.chatroomRepo.save(room);
   }
 
-  async findAll() {
-    return await this.chatroomRepo.find({
-      order: { createdAt: 'DESC' },
-      relations: ['owner'],
-    });
+  async findAll(userId: number) {
+    return await this.chatroomRepo
+      .createQueryBuilder('chatroom')
+      .leftJoinAndSelect('chatroom.owner', 'owner')
+      .loadRelationCountAndMap('chatroom.unreadCount', 'chatroom.messages', 'message', (qb) =>
+        qb.where(
+          'message.senderId != :userId AND message.id NOT IN (SELECT "messageId" FROM "message_reads" WHERE "userId" = :userId)',
+          { userId },
+        ),
+      )
+      .orderBy('chatroom.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: number) {

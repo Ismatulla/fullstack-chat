@@ -4,6 +4,7 @@ export const SOCKET_EMIT = {
   LEAVE_ROOM: 'leave-room',
   SEND_MESSAGE: 'send-message',
   MESSAGE_READ: 'message-read',
+  MARK_ROOM_READ: 'mark-room-read',
   TYPING: 'typing',
   ADD_REACTION: 'add-reaction',
   REMOVE_REACTION: 'remove-reaction',
