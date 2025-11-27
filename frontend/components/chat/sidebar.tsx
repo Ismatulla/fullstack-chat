@@ -90,12 +90,8 @@ export function Sidebar({
       mutate(updatedRooms, { revalidate: false })
     }
 
-    if (!socket.connected) {
-      console.error('❌ Socket not connected! Call socket.connect() first')
-      return
-    }
-
-    socket.emit('join-room', { roomId: String(room.id) })
+    // Note: join-room is handled by ChatWindow component when it loads
+    // No need to emit here to avoid duplicate join events
   }
 
   // Listen for new messages to update unread count
@@ -145,9 +141,8 @@ export function Sidebar({
           <div className="flex items-center gap-2">
             {/* Connection Status Indicator */}
             <div
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`}
+              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
+                }`}
               title={isConnected?.message ? 'Connected' : 'Disconnected'}
             />
             <ThemeToggle />
@@ -206,9 +201,8 @@ export function Sidebar({
               unoptimized
             />
             <div
-              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${
-                isConnected?.message ? 'bg-green-500' : 'bg-red-500'
-              }`}
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${isConnected?.message ? 'bg-green-500' : 'bg-red-500'
+                }`}
             />
           </div>
           <div className="flex-1 min-w-0">

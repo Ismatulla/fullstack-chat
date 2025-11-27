@@ -49,6 +49,8 @@ export interface Message {
   }
   isEdited?: boolean
   editedAt?: string
+  isSystemMessage?: boolean
+  systemMessage?: string
 }
 
 export interface ChatRoom {

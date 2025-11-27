@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import type { ChatRoom, Message, Reactions } from '@/lib/types'
 import type { User } from '@/lib/auth-types'
 import { MessageItem } from './message-item'
@@ -12,6 +12,7 @@ import { socket } from '@/socket/socket'
 import { getRoomMessages } from '@/services/chatService'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { SOCKET_EMIT, SOCKET_LISTEN } from '@/lib/socket-events'
+import { SystemMessage } from './system-message'
 
 interface ChatWindowProps {
   room: ChatRoom
@@ -33,23 +34,46 @@ export default function ChatWindow({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
+  // Track if we've joined to prevent React Strict Mode double-mounting issues
+  const hasJoinedRef = useRef<string | null>(null)
+
   // ========== Load messages on room change ==========
   useEffect(() => {
     if (!selectedRoom?.id) return
 
-    const joinRoom = () => {
-      socket.emit(SOCKET_EMIT.JOIN_ROOM, { roomId: String(selectedRoom.id) })
+    const currentRoomId = String(selectedRoom.id)
+    console.log('[ChatWindow] useEffect triggered for room:', currentRoomId, 'hasJoinedRef:', hasJoinedRef.current)
+
+    // If we've already joined this room, don't join again (React Strict Mode protection)
+    if (hasJoinedRef.current === currentRoomId) {
+      console.log('[ChatWindow] Already joined room', currentRoomId, '- skipping')
+      return
     }
 
-    // Join immediately
+    // If we were in a different room, leave it first
+    if (hasJoinedRef.current && hasJoinedRef.current !== currentRoomId && socket.connected) {
+      console.log('[ChatWindow] Leaving previous room:', hasJoinedRef.current)
+      socket.emit(SOCKET_EMIT.LEAVE_ROOM, { roomId: hasJoinedRef.current })
+    }
+
+    const joinRoom = () => {
+      console.log('[ChatWindow] Emitting JOIN_ROOM for:', currentRoomId)
+      socket.emit(SOCKET_EMIT.JOIN_ROOM, { roomId: currentRoomId })
+      hasJoinedRef.current = currentRoomId
+    }
+
+    // Join immediately if connected
     if (socket.connected) {
       joinRoom()
     } else {
+      // Connect and join once connected
+      console.log('[ChatWindow] Socket not connected, connecting...')
       socket.connect()
+      socket.once('connect', () => {
+        console.log('[ChatWindow] Socket connected, joining room')
+        joinRoom()
+      })
     }
-
-    // Re-join on reconnect
-    socket.on('connect', joinRoom)
 
     const fetchMessages = async () => {
       setIsLoading(true)
@@ -67,8 +91,9 @@ export default function ChatWindow({
 
     fetchMessages()
 
+    // Cleanup: No need to emit leave here since we handle it at the start of the next effect
     return () => {
-      socket.off('connect', joinRoom)
+      console.log('[ChatWindow] Cleanup running for room:', currentRoomId)
     }
   }, [selectedRoom?.id])
 
@@ -258,12 +283,67 @@ export default function ChatWindow({
       setMessages([])
     }
 
+    const handleUserJoined = (data: {
+      userId: number
+      email: string
+      roomId: string
+      timestamp: Date
+    }) => {
+      if (String(data.roomId) !== String(selectedRoom.id)) return
+
+      // Add system message
+      const systemMsg: Message = {
+        id: `system-${Date.now()}`,
+        content: '',
+        roomId: data.roomId,
+        timestamp: new Date(data.timestamp),
+        createdAt: new Date(data.timestamp),
+        updatedAt: new Date(data.timestamp),
+        reactions: [],
+        readReceipts: [],
+        mentions: [],
+        image: null,
+        isSystemMessage: true,
+        systemMessage: `${data.email} joined the room`,
+      }
+
+      setMessages(prev => [...prev, systemMsg])
+    }
+
+    const handleUserLeft = (data: {
+      userId: number
+      email: string
+      roomId: string
+      timestamp: Date
+    }) => {
+      if (String(data.roomId) !== String(selectedRoom.id)) return
+
+      // Add system message
+      const systemMsg: Message = {
+        id: `system-${Date.now()}`,
+        content: '',
+        roomId: data.roomId,
+        timestamp: new Date(data.timestamp),
+        createdAt: new Date(data.timestamp),
+        updatedAt: new Date(data.timestamp),
+        reactions: [],
+        readReceipts: [],
+        mentions: [],
+        image: null,
+        isSystemMessage: true,
+        systemMessage: `${data.email} left the room`,
+      }
+
+      setMessages(prev => [...prev, systemMsg])
+    }
+
     const handleError = (error: unknown) => {
       console.error('Socket Error:', error)
       //revert optimistic updates here ,use React19 useOptimistic update
     }
 
-    socket.connect()
+    // Note: socket.connect() is handled in the first useEffect above
+    // Don't call it here to avoid duplicate connections
     socket.on(SOCKET_LISTEN.MESSAGE_SENT, handleNewMessage)
     socket.on(SOCKET_LISTEN.MESSAGE_NEW, handleNewMessage)
     socket.on(SOCKET_LISTEN.USER_TYPING, handleTyping)
@@ -273,6 +353,8 @@ export default function ChatWindow({
     socket.on(SOCKET_LISTEN.MESSAGE_UPDATED, handleMessageUpdated)
     socket.on(SOCKET_LISTEN.MESSAGE_DELETED, handleMessageDeleted)
     socket.on(SOCKET_LISTEN.ROOM_CLEARED, handleRoomCleared)
+    socket.on(SOCKET_LISTEN.USER_JOINED, handleUserJoined)
+    socket.on(SOCKET_LISTEN.USER_LEFT, handleUserLeft)
     socket.on(SOCKET_LISTEN.ERROR, handleError)
 
     return () => {
@@ -285,6 +367,8 @@ export default function ChatWindow({
       socket.off(SOCKET_LISTEN.MESSAGE_UPDATED, handleMessageUpdated)
       socket.off(SOCKET_LISTEN.MESSAGE_DELETED, handleMessageDeleted)
       socket.off(SOCKET_LISTEN.ROOM_CLEARED, handleRoomCleared)
+      socket.off(SOCKET_LISTEN.USER_JOINED, handleUserJoined)
+      socket.off(SOCKET_LISTEN.USER_LEFT, handleUserLeft)
       socket.off(SOCKET_LISTEN.ERROR, handleError)
     }
   }, [currentUser, selectedRoom.id])
@@ -512,14 +596,22 @@ export default function ChatWindow({
           ) : (
             <div className="space-y-4 mx-auto">
               {messages.map((message, index) => (
-                <MessageItem
-                  key={index}
-                  message={message}
-                  onReact={emoji => handleReact(message.id, emoji)}
-                  currentUser={currentUser}
-                  room={room}
-                  selectedRoom={selectedRoom}
-                />
+                message.isSystemMessage ? (
+                  <SystemMessage
+                    key={index}
+                    message={message.systemMessage || ''}
+                    timestamp={message.timestamp}
+                  />
+                ) : (
+                  <MessageItem
+                    key={index}
+                    message={message}
+                    onReact={emoji => handleReact(message.id, emoji)}
+                    currentUser={currentUser}
+                    room={room}
+                    selectedRoom={selectedRoom}
+                  />
+                )
               ))}
 
               {/* Typing Indicator */}
