@@ -188,6 +188,7 @@ export default function ChatWindow({
       userId: number
       emoji: string
     }) => {
+      console.log('➖ Reaction Removed Event:', data)
       setMessages(prev =>
         prev.map(msg => {
           // Ensure both IDs are strings for comparison
@@ -452,7 +453,8 @@ export default function ChatWindow({
     const message = messages.find(m => m.id === messageId)
     if (!message) return
 
-    const hasReacted = message.reactions?.some(
+    // Check if user already reacted with this specific emoji
+    const hasReactedWithThisEmoji = message.reactions?.some(
       react =>
         String(react.user?.id) === String(currentUser.id) &&
         react.emoji === emoji,
@@ -466,8 +468,8 @@ export default function ChatWindow({
         const existing = msg.reactions || []
         let newReactions = [...existing]
 
-        if (hasReacted) {
-          // Remove locally
+        if (hasReactedWithThisEmoji) {
+          // Remove this specific emoji (toggle off)
           newReactions = newReactions.filter(
             r =>
               !(
@@ -476,7 +478,12 @@ export default function ChatWindow({
               ),
           )
         } else {
-          // Add locally
+          // Remove any existing reaction from this user first (for optimistic update)
+          newReactions = newReactions.filter(
+            r => String(r.user?.id) !== String(currentUser.id)
+          )
+
+          // Add the new reaction
           const newReaction: Reactions = {
             id: `temp-${Date.now()}`,
             createdAt: new Date().toISOString(),
@@ -494,7 +501,10 @@ export default function ChatWindow({
     )
 
     socket.connect()
-    if (hasReacted) {
+
+    // Backend will handle removing previous reaction if exists
+    // Just send add or remove based on current state
+    if (hasReactedWithThisEmoji) {
       socket.emit(SOCKET_EMIT.REMOVE_REACTION, {
         roomId: String(selectedRoom.id),
         messageId: Number(messageId),

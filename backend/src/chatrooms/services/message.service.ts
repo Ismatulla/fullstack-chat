@@ -211,13 +211,22 @@ export class MessagesService {
 
   //Add reaction to message
   async addReaction(messageId: number, userId: number, emoji: string) {
-    const existing = await this.reactionRepo.findOne({
-      where: { message: { id: messageId }, user: { id: userId }, emoji },
+    // First, check if user already has a reaction on this message
+    const existingReaction = await this.reactionRepo.findOne({
+      where: { message: { id: messageId }, user: { id: userId } },
     });
-    if (existing) {
-      return existing;
+
+    // If user already reacted with a different emoji, remove it first
+    if (existingReaction && existingReaction.emoji !== emoji) {
+      await this.reactionRepo.remove(existingReaction);
     }
 
+    // If user already reacted with this exact emoji, just return it (idempotent)
+    if (existingReaction && existingReaction.emoji === emoji) {
+      return existingReaction;
+    }
+
+    // Add the new reaction
     const reaction = this.reactionRepo.create({
       message: { id: messageId },
       user: { id: userId },

@@ -25,7 +25,7 @@ export const SOCKET_LISTEN = {
   USER_TYPING: 'user-typing',
   MESSAGE_STATUS: 'message-status',
   REACTION_ADDED: 'reaction-added',
-  REACTION_REMOVED: 'reaction-remover',
+  REACTION_REMOVED: 'reaction-removed',
   MESSAGE_SENT: 'message-sent',
   MESSAGE_NEW: 'new-message',
   ERROR: 'error',
