@@ -36,14 +36,16 @@ export class MessagesService {
       .leftJoinAndSelect('reactions.user', 'reactionUser')
       .leftJoinAndSelect('message.readReceipts', 'readReceipts')
       .leftJoinAndSelect('readReceipts.user', 'readUser')
-      .where('message.chatRoomId = :roomId', { roomId })
-      .orderBy('message.createdAt', 'ASC')
+      .where('message.chatRoom = :roomId', { roomId })
+      .orderBy('message.createdAt', 'DESC')
       .take(limit);
 
     if (before) {
       query.andWhere('message.createdAt < :before', { before });
     }
-    return await query.getMany();
+    const messages = await query.getMany();
+    console.log(`Fetched ${messages.length} messages for room ${roomId}`);
+    return messages.reverse();
   }
 
   // find message by ID
@@ -131,7 +133,7 @@ export class MessagesService {
     return await this.messageRepo
       .createQueryBuilder('message')
       .leftJoinAndSelect('message.sender', 'sender')
-      .where('message.chatRoomId = :roomId', { roomId })
+      .where('message.chatRoom = :roomId', { roomId })
       .andWhere('message.content ILIKE :query', { query: `%${query}%` })
       .orderBy('message.createdAt', 'DESC')
       .take(limit)
