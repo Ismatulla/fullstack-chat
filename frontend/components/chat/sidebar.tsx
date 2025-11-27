@@ -106,6 +106,16 @@ export function Sidebar({
       // Don't increment for own messages
       if (String(data.userId) === String(currentUser?.id)) return
 
+      // Play notification sound
+      try {
+        // Softer "ding" / chime sound
+        const audio = new Audio('/message-sound.wav')
+        audio.volume = 0.4 // Slightly lower volume for "softness"
+        audio.play().catch(err => console.log('Audio play failed:', err))
+      } catch (error) {
+        console.error('Error playing sound:', error)
+      }
+
       // If message is for a different room, increment unread count
       if (String(selectedRoom?.id) !== String(data.roomId) && rooms) {
         const updatedRooms = rooms.map((r: ChatRoom) => {
@@ -135,8 +145,9 @@ export function Sidebar({
           <div className="flex items-center gap-2">
             {/* Connection Status Indicator */}
             <div
-              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
-                }`}
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
               title={isConnected?.message ? 'Connected' : 'Disconnected'}
             />
             <ThemeToggle />
@@ -195,8 +206,9 @@ export function Sidebar({
               unoptimized
             />
             <div
-              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${isConnected?.message ? 'bg-green-500' : 'bg-red-500'
-                }`}
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar ${
+                isConnected?.message ? 'bg-green-500' : 'bg-red-500'
+              }`}
             />
           </div>
           <div className="flex-1 min-w-0">
