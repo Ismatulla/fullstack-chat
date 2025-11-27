@@ -103,4 +103,78 @@ export class MessageEventHandler {
       console.error('Failed to mark room as read:', error);
     }
   }
+
+  async handleEditMessage(
+    client: AuthenticatedSocket,
+    data: { roomId: string; messageId: number; content: string },
+  ) {
+    const { roomId, messageId, content } = data;
+    const userId = +client.data.userId;
+
+    try {
+      const updatedMessage = await this.messagesService.editMessage(messageId, userId, content);
+
+      // Broadcast update
+      client.to(roomId).emit('message-updated', {
+        id: updatedMessage.id,
+        content: updatedMessage.content,
+        isEdited: true,
+        editedAt: updatedMessage.editedAt,
+        roomId: roomId
+      });
+
+      // Also emit to sender (to confirm update)
+      client.emit('message-updated', {
+        id: updatedMessage.id,
+        content: updatedMessage.content,
+        isEdited: true,
+        editedAt: updatedMessage.editedAt,
+        roomId: roomId
+      });
+
+    } catch (error) {
+      console.error('Failed to edit message:', error);
+      client.emit('error', { message: 'Failed to edit message' });
+    }
+  }
+
+  async handleDeleteMessage(
+    client: AuthenticatedSocket,
+    data: { roomId: string; messageId: number },
+  ) {
+    const { roomId, messageId } = data;
+    const userId = +client.data.userId;
+
+    try {
+      await this.messagesService.deleteMessage(messageId, userId);
+
+      // Broadcast delete
+      client.to(roomId).emit('message-deleted', { messageId, roomId });
+      client.emit('message-deleted', { messageId, roomId });
+
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      client.emit('error', { message: 'Failed to delete message' });
+    }
+  }
+
+  async handleClearRoom(
+    client: AuthenticatedSocket,
+    data: { roomId: string },
+  ) {
+    const { roomId } = data;
+    const userId = +client.data.userId;
+
+    try {
+      await this.messagesService.clearRoomMessages(Number(roomId), userId);
+
+      // Broadcast clear
+      client.to(roomId).emit('room-cleared', { roomId });
+      client.emit('room-cleared', { roomId });
+
+    } catch (error) {
+      console.error('Failed to clear room:', error);
+      client.emit('error', { message: 'Failed to clear room' });
+    }
+  }
 }

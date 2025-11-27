@@ -130,6 +130,75 @@ export class MessagesService {
     });
   }
 
+  // Edit a message
+  async editMessage(messageId: number, userId: number, content: string): Promise<Message> {
+    const message = await this.messageRepo.findOne({
+      where: { id: messageId },
+      relations: ['sender']
+    });
+
+    if (!message) {
+      throw new Error('Message not found');
+    }
+
+    if (message.sender.id !== userId) {
+      throw new Error('Unauthorized to edit this message');
+    }
+
+    message.content = content;
+    message.isEdited = true;
+    message.editedAt = new Date();
+
+    return await this.messageRepo.save(message);
+  }
+
+  // Delete a message
+  async deleteMessage(messageId: number, userId: number): Promise<void> {
+    const message = await this.messageRepo.findOne({
+      where: { id: messageId },
+      relations: ['sender']
+    });
+
+    if (!message) {
+      throw new Error('Message not found');
+    }
+
+    if (message.sender.id !== userId) {
+      throw new Error('Unauthorized to delete this message');
+    }
+
+    await this.messageRepo.remove(message);
+  }
+
+  // Clear all messages in a room (Owner only)
+  async clearRoomMessages(roomId: number, userId: number): Promise<void> {
+    console.log(`[clearRoomMessages] Attempting to clear room ${roomId} for user ${userId}`);
+
+    // First, verify the room exists and user is the owner
+    const room = await this.messageRepo.manager
+      .createQueryBuilder()
+      .select('chatroom')
+      .from('chatrooms', 'chatroom')
+      .where('chatroom.id = :roomId', { roomId })
+      .andWhere('chatroom.ownerId = :userId', { userId })
+      .getRawOne();
+
+    if (!room) {
+      console.error(`[clearRoomMessages] Room not found or user is not owner`);
+      throw new Error('Room not found or you are not the owner');
+    }
+
+    // Delete all messages in the room
+    const result = await this.messageRepo
+      .createQueryBuilder()
+      .delete()
+      .from(Message)
+      .where('chatRoomId = :roomId', { roomId })
+      .execute();
+
+    console.log(`[clearRoomMessages] Deleted ${result.affected} messages from room ${roomId}`);
+  }
+
   // Get read receipts for a message
 
   async getReadReceipts(messageId: number) {
@@ -187,36 +256,5 @@ export class MessagesService {
       .take(limit)
       .getMany();
   }
-
-  //Edit message
-  async editMessage(messageId: number, userId: number, newContent: string) {
-    const message = await this.messageRepo.findOne({
-      where: { id: messageId },
-      relations: ['sender'],
-    });
-
-    if (!message || message.sender.id !== userId) {
-      throw new Error('Unauthorized or message not found');
-    }
-
-    message.content = newContent;
-    message.isEdited = true;
-    message.editedAt = new Date();
-
-    return await this.messageRepo.save(message);
-  }
-
-  // Delete message
-  async deleteMessage(messageId: number, userId: number) {
-    const message = await this.messageRepo.findOne({
-      where: { id: messageId },
-      relations: ['sender'],
-    });
-
-    if (!message || message.sender.id !== userId) {
-      throw new Error('Unauthorized or message not found');
-    }
-    await this.messageRepo.remove(message);
-    return { deleted: true };
-  }
 }
+

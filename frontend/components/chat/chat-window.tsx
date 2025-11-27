@@ -223,6 +223,41 @@ export default function ChatWindow({
       )
     }
 
+    const handleMessageUpdated = (data: {
+      id: number
+      content: string
+      isEdited: boolean
+      editedAt: string
+      roomId: string
+    }) => {
+      if (String(data.roomId) !== String(selectedRoom.id)) return
+
+      setMessages(prev =>
+        prev.map(msg => {
+          if (String(msg.id) === String(data.id)) {
+            return {
+              ...msg,
+              content: data.content,
+              isEdited: data.isEdited,
+              editedAt: data.editedAt,
+            }
+          }
+          return msg
+        }),
+      )
+    }
+
+    const handleMessageDeleted = (data: { messageId: number; roomId: string }) => {
+      if (String(data.roomId) !== String(selectedRoom.id)) return
+
+      setMessages(prev => prev.filter(msg => String(msg.id) !== String(data.messageId)))
+    }
+
+    const handleRoomCleared = (data: { roomId: string }) => {
+      if (String(data.roomId) !== String(selectedRoom.id)) return
+      setMessages([])
+    }
+
     const handleError = (error: unknown) => {
       console.error('Socket Error:', error)
       //revert optimistic updates here ,use React19 useOptimistic update
@@ -235,6 +270,9 @@ export default function ChatWindow({
     socket.on(SOCKET_LISTEN.REACTION_ADDED, handleReactionAdded)
     socket.on(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
     socket.on(SOCKET_LISTEN.MESSAGE_STATUS, handleMessageStatus)
+    socket.on(SOCKET_LISTEN.MESSAGE_UPDATED, handleMessageUpdated)
+    socket.on(SOCKET_LISTEN.MESSAGE_DELETED, handleMessageDeleted)
+    socket.on(SOCKET_LISTEN.ROOM_CLEARED, handleRoomCleared)
     socket.on(SOCKET_LISTEN.ERROR, handleError)
 
     return () => {
@@ -244,6 +282,9 @@ export default function ChatWindow({
       socket.off(SOCKET_LISTEN.REACTION_ADDED, handleReactionAdded)
       socket.off(SOCKET_LISTEN.REACTION_REMOVED, handleReactionRemoved)
       socket.off(SOCKET_LISTEN.MESSAGE_STATUS, handleMessageStatus)
+      socket.off(SOCKET_LISTEN.MESSAGE_UPDATED, handleMessageUpdated)
+      socket.off(SOCKET_LISTEN.MESSAGE_DELETED, handleMessageDeleted)
+      socket.off(SOCKET_LISTEN.ROOM_CLEARED, handleRoomCleared)
       socket.off(SOCKET_LISTEN.ERROR, handleError)
     }
   }, [currentUser, selectedRoom.id])
@@ -384,9 +425,19 @@ export default function ChatWindow({
     }
   }
 
+  const handleClearChat = () => {
+    if (confirm('Are you sure you want to clear all messages in this room? This cannot be undone.')) {
+      socket.emit(SOCKET_EMIT.CLEAR_ROOM, {
+        roomId: String(selectedRoom.id)
+      })
+    }
+  }
+
   const currentRoomTypingUsers = typingUsers.filter(
     user => String(user.roomId) == String(selectedRoom.id), // ✅ Convert both to string
   )
+
+  const isOwner = String(room.owner?.id) === String(currentUser.id)
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
@@ -417,6 +468,16 @@ export default function ChatWindow({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isOwner && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleClearChat}
+              className="mr-2"
+            >
+              Clear Chat
+            </Button>
+          )}
           <Button
             size="icon"
             variant="ghost"

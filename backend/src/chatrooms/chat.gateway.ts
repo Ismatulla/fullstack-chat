@@ -48,7 +48,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private typingHandler: TypingEventHandler,
     private reactionHandler: ReactionEventHandler,
     private presenceHandler: PresenceEventHandler,
-  ) {}
+  ) { }
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
@@ -138,6 +138,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string },
   ) {
     return this.messageHandler.handleMarkRoomRead(client, data);
+  }
+
+  @SubscribeMessage('edit-message')
+  async handleEditMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { roomId: string; messageId: number; content: string },
+  ) {
+    return this.messageHandler.handleEditMessage(client, data);
+  }
+
+  @SubscribeMessage('delete-message')
+  async handleDeleteMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { roomId: string; messageId: number },
+  ) {
+    return this.messageHandler.handleDeleteMessage(client, data);
+  }
+
+  @SubscribeMessage('clear-room')
+  async handleClearRoom(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { roomId: string },
+  ) {
+    return this.messageHandler.handleClearRoom(client, data);
   }
 
   // ========== TYPING EVENTS ==========

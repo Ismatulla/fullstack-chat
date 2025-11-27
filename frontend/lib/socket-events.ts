@@ -10,6 +10,9 @@ export const SOCKET_EMIT = {
   REMOVE_REACTION: 'remove-reaction',
   CHECK_USER_STATUS: 'check-user-status',
   GET_ROOM_USERS: 'get-room-users',
+  EDIT_MESSAGE: 'edit-message',
+  DELETE_MESSAGE: 'delete-message',
+  CLEAR_ROOM: 'clear-room',
 } as const
 
 // Listen events (server -> client)
@@ -22,8 +25,11 @@ export const SOCKET_LISTEN = {
   USER_TYPING: 'user-typing',
   MESSAGE_STATUS: 'message-status',
   REACTION_ADDED: 'reaction-added',
-  REACTION_REMOVED: 'reaction-removed',
+  REACTION_REMOVED: 'reaction-remover',
   MESSAGE_SENT: 'message-sent',
   MESSAGE_NEW: 'new-message',
   ERROR: 'error',
+  MESSAGE_UPDATED: 'message-updated',
+  MESSAGE_DELETED: 'message-deleted',
+  ROOM_CLEARED: 'room-cleared',
 } as const

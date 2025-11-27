@@ -47,6 +47,8 @@ export interface Message {
     name: string
     image: string
   }
+  isEdited?: boolean
+  editedAt?: string
 }
 
 export interface ChatRoom {
