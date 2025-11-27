@@ -48,7 +48,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private typingHandler: TypingEventHandler,
     private reactionHandler: ReactionEventHandler,
     private presenceHandler: PresenceEventHandler,
-  ) { }
+  ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
