@@ -1,6 +1,14 @@
 import type { ChatRoom, Message } from '@/lib/types'
 import { Button } from '../ui/button'
-import { SmilePlus, Check, CheckCheck, Pencil, Trash2, MoreVertical, X } from 'lucide-react'
+import {
+  SmilePlus,
+  Check,
+  CheckCheck,
+  Pencil,
+  Trash2,
+  MoreVertical,
+  X,
+} from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 import { cn } from '@/lib/utils'
@@ -45,7 +53,10 @@ export function MessageItem({
   // Close actions menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
+      if (
+        actionsRef.current &&
+        !actionsRef.current.contains(event.target as Node)
+      ) {
         setShowActions(false)
       }
     }
@@ -62,7 +73,7 @@ export function MessageItem({
     socket.emit(SOCKET_EMIT.EDIT_MESSAGE, {
       roomId: String(room.id),
       messageId: Number(message.id),
-      content: editContent
+      content: editContent,
     })
     setIsEditing(false)
     setShowActions(false)
@@ -72,13 +83,15 @@ export function MessageItem({
     if (confirm('Are you sure you want to delete this message?')) {
       socket.emit(SOCKET_EMIT.DELETE_MESSAGE, {
         roomId: String(room.id),
-        messageId: Number(message.id)
+        messageId: Number(message.id),
       })
     }
     setShowActions(false)
   }
 
   if (String(selectedRoom.id) !== String(room.id)) return null
+  console.log(message, 'message item rendering')
+
   return (
     <div
       className={clsx('flex gap-3 group ', {
@@ -90,7 +103,7 @@ export function MessageItem({
         {/* <Image
           src={currentUser?.image || '/general-room.jpg'}
           alt={currentUser?.name || 'User'}
-          className="object-cover"
+          // className="object-cover"
           fill
         /> */}
         <img
@@ -109,7 +122,8 @@ export function MessageItem({
       >
         <div className="flex items-center gap-2 px-3">
           <span className=" text-sm font-medium text-foreground">
-            {currentUser?.name}
+            {message?.email?.split('@')[0] ||
+              message?.sender?.email.split('@')[0]}
           </span>
           <span className=" text-xs  text-muted-foreground">
             {formatTime(message.timestamp || message.createdAt)}
@@ -138,19 +152,29 @@ export function MessageItem({
               <div className="flex flex-col gap-2 min-w-[200px]">
                 <Input
                   value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
+                  onChange={e => setEditContent(e.target.value)}
                   className="bg-background text-foreground h-8"
                   autoFocus
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === 'Enter') handleEdit()
                     if (e.key === 'Escape') setIsEditing(false)
                   }}
                 />
                 <div className="flex justify-end gap-1">
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsEditing(false)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => setIsEditing(false)}
+                  >
                     <X className="h-3 w-3" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleEdit}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={handleEdit}
+                  >
                     <Check className="h-3 w-3" />
                   </Button>
                 </div>
@@ -159,7 +183,9 @@ export function MessageItem({
               <>
                 <p className="text-sm">{message.content}</p>
                 {message.isEdited && (
-                  <span className="text-[10px] opacity-70 block text-right mt-1">(edited)</span>
+                  <span className="text-[10px] opacity-70 block text-right mt-1">
+                    (edited)
+                  </span>
                 )}
               </>
             )}
@@ -215,7 +241,12 @@ export function MessageItem({
 
         {/* Reactions Display */}
         {message?.reactions && message.reactions.length > 0 && (
-          <div className={cn("flex gap-1 flex-wrap mt-1", isOwn ? "justify-end" : "justify-start")}>
+          <div
+            className={cn(
+              'flex gap-1 flex-wrap mt-1',
+              isOwn ? 'justify-end' : 'justify-start',
+            )}
+          >
             {Object.values(groupReactionsByEmoji(message.reactions)).map(
               group => (
                 <button
@@ -269,7 +300,9 @@ export function MessageItem({
 
               return validReceipts.length > 0 ? (
                 <div
-                  title={`Seen by ${validReceipts.map(r => r.user?.name || 'Unknown').join(', ')}`}
+                  title={`Seen by ${validReceipts
+                    .map(r => r.user?.name || 'Unknown')
+                    .join(', ')}`}
                 >
                   <CheckCheck className="h-3 w-3 text-blue-500" />
                   <span> Seen by {validReceipts.length}</span>

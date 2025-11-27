@@ -24,6 +24,7 @@ export interface Message {
   timestamp: Date
   createdAt: Date
   updatedAt: Date
+  email?: string
   reactions: Reactions[]
   readReceipts: {
     id: number
@@ -46,6 +47,7 @@ export interface Message {
     id: string
     name: string
     image: string
+    email: string
   }
   isEdited?: boolean
   editedAt?: string

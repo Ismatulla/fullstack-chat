@@ -24,6 +24,7 @@ Welcome to the Chat Application! This document provides a comprehensive overview
 - **Edit Room**: Update room name and image (owner only)
 - **Delete Room**: Remove rooms you own
 - **Room Ownership**: Each room has an owner with special privileges
+- **User left and join room indicator**
 
 ### Messaging
 
@@ -38,7 +39,6 @@ Welcome to the Chat Application! This document provides a comprehensive overview
 - **Real-time Sync**: Messages appear instantly for all users in the room
 - **Message History**: All messages are persisted and loaded when you join a room
 - **Offline Messages**: Receive messages sent while you were offline
-
 
 ### Message Actions
 
